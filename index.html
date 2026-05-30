@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="RetroChat">
+<title>RetroChat</title>
+<link rel="icon" type="image/png" href="retrochat-logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Tahoma:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --msn-blue1: #00758e;
+  --msn-blue2: #009ebf;
+  --msn-blue3: #3ac9e8;
+  --msn-blue4: #a6e7f5;
+  --msn-blue5: #e0f8fc;
+  --msn-green: #00a550;
+  --msn-border: #7abcc9;
+  --msn-title-top: #008aa8;
+  --msn-title-bot: #005c70;
+  --msn-bar-top: #13aed4;
+  --msn-bar-bot: #00758e;
+  --msn-white: #ffffff;
+  --msn-gray: #f0f8f9;
+  --msn-gray2: #d8eff2;
+  --msn-text: #1a2e2e;
+  --msn-subtext: #4a6a70;
+  --msn-chat-bg: #dcf0f2;
+  --msn-mine-bg: #c0e8ed;
+  --msn-mine-border: #5aaec0;
+  --msn-theirs-bg: #ffffff;
+  --msn-theirs-border: #a1ccd4;
+  --msn-online: #00b050;
+  --msn-offline: #8faeb5;
+  --msn-shadow2: 0 1px 3px rgba(0,117,142,0.15);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Tahoma', 'Segoe UI', Arial, sans-serif; background: var(--msn-blue1); height: 100dvh; overflow: hidden; font-size: 13px; }
+
+.screen { display: none; height: 100dvh; flex-direction: column; background: var(--msn-gray); }
+.screen.active { display: flex; }
+
+/* ── Conn bar — solo errores de conexion, sin toasts ── */
+#connBar { background: linear-gradient(90deg, #c0392b, #e74c3c); color: #fff; text-align: center; font-size: 11px; padding: 5px 10px; display: none; font-weight: 700; flex-shrink: 0; }
+#connBar.show { display: block; }
+
+/* ── Title bar ── */
+.msn-titlebar { background: linear-gradient(180deg, var(--msn-title-top) 0%, var(--msn-title-bot) 100%); display: flex; align-items: stretch; min-height: 52px; border-bottom: 2px solid var(--msn-blue3); box-shadow: 0 2px 6px rgba(0,30,100,0.4); flex-shrink: 0; }
+.msn-titlebar-inner { display: flex; align-items: center; flex: 1; padding: 8px 10px; gap: 8px; }
+.msn-logo { width: 30px; height: 30px; flex-shrink: 0; }
+.msn-title-text { flex: 1; }
+.msn-title-text .app-name { font-size: 15px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); letter-spacing: 0.3px; }
+.msn-title-text .app-sub { font-size: 10px; color: var(--msn-blue4); margin-top: 1px; }
+.msn-btn { background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 100%); border: 1px solid rgba(255,255,255,0.35); border-radius: 6px; color: #fff; font-size: 18px; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.msn-btn:active { background: rgba(0,0,0,0.15); }
+
+/* ── LOGIN ── */
+#loginScreen { background: linear-gradient(160deg, var(--msn-blue1) 0%, var(--msn-blue2) 50%, var(--msn-blue3) 100%); justify-content: center; align-items: center; padding: 20px 16px; }
+.login-wrapper { width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; }
+.login-logo-area { text-align: center; margin-bottom: 18px; }
+.msn-butterfly-logo { width: 72px; height: 72px; margin-bottom: 8px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3)); }
+.login-logo-area h1 { font-size: 26px; font-weight: 700; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.4); letter-spacing: 1px; }
+.login-logo-area .tagline { font-size: 11px; color: var(--msn-blue4); margin-top: 2px; }
+.login-box { background: rgba(255,255,255,0.95); border-radius: 10px; padding: 20px 18px 16px; width: 100%; box-shadow: 0 6px 24px rgba(0,30,100,0.35); }
+.login-box-header { font-size: 12px; font-weight: 700; color: var(--msn-blue1); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--msn-gray2); }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 11px; font-weight: 700; color: var(--msn-subtext); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field input { width: 100%; padding: 9px 11px; border: 1px solid var(--msn-border); border-radius: 5px; font-size: 14px; font-family: 'Tahoma', Arial, sans-serif; color: var(--msn-text); background: var(--msn-gray); -webkit-appearance: none; }
+.field input:focus { outline: none; border-color: var(--msn-blue2); background: #fff; box-shadow: 0 0 0 3px rgba(26,127,212,0.15); }
+.btn-row { display: flex; gap: 8px; margin-top: 14px; }
+.btn { flex: 1; padding: 10px 12px; border-radius: 6px; font-size: 13px; font-weight: 700; font-family: 'Tahoma', Arial, sans-serif; cursor: pointer; border: none; letter-spacing: 0.2px; }
+.btn:active { filter: brightness(0.88); transform: scale(0.97); }
+.btn-primary { background: linear-gradient(180deg, var(--msn-bar-top) 0%, var(--msn-bar-bot) 100%); color: #fff; border: 1px solid var(--msn-blue1); }
+.btn-secondary { background: linear-gradient(180deg, #fff 0%, #e8eef8 100%); color: var(--msn-blue1); border: 1px solid var(--msn-border); }
+.status-msg { text-align: center; font-size: 11px; color: var(--msn-subtext); margin-top: 10px; min-height: 16px; font-style: italic; }
+.status-msg.error { color: #c0392b; font-style: normal; font-weight: 700; }
+
+/* ── Friends screen ── */
+.friends-header-bar { background: linear-gradient(180deg, #e8f0fb 0%, #d4e4f8 100%); border-bottom: 1px solid var(--msn-border); padding: 8px 12px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.my-avatar { width: 38px; height: 38px; border-radius: 6px; background: linear-gradient(135deg, var(--msn-blue2), var(--msn-blue1)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; border: 2px solid var(--msn-border); flex-shrink: 0; cursor: pointer; }
+.my-info { flex: 1; min-width: 0; cursor: pointer; }
+.my-info .my-name { font-size: 13px; font-weight: 700; color: var(--msn-blue1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.my-info .my-status-text { font-size: 11px; color: var(--msn-subtext); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+.my-info .my-status-dot { font-size: 10px; font-weight: 700; }
+.my-info .my-status-dot.online { color: var(--msn-green); }
+.my-info .my-status-dot.busy { color: #e05c00; }
+.my-info .my-status-dot.away { color: #c0a000; }
+.my-info .my-status-dot.invisible { color: #888; }
+
+.friends-section-label { background: linear-gradient(90deg, var(--msn-blue4) 0%, var(--msn-blue5) 100%); border-top: 1px solid var(--msn-border); border-bottom: 1px solid var(--msn-border); padding: 4px 12px; font-size: 10px; font-weight: 700; color: var(--msn-blue1); text-transform: uppercase; letter-spacing: 0.8px; flex-shrink: 0; }
+
+.friends-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--msn-white); }
+
+.friend-item { display: flex; align-items: center; padding: 9px 12px; border-bottom: 1px solid #edf2f8; background: var(--msn-white); }
+.friend-item:active { background: var(--msn-blue5); }
+.friend-item-tap { display: flex; align-items: center; flex: 1; min-width: 0; cursor: pointer; }
+
+.friend-avatar { width: 38px; height: 38px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; margin-right: 10px; flex-shrink: 0; border: 1.5px solid var(--msn-border); position: relative; }
+.friend-avatar.av-online { background: linear-gradient(135deg, #b8e0ff, #7ec8ff); color: var(--msn-blue1); }
+.friend-avatar.av-busy { background: linear-gradient(135deg, #ffd8b0, #ffb060); color: #7a3000; }
+.friend-avatar.av-away { background: linear-gradient(135deg, #fff8b0, #ffe040); color: #7a6000; }
+.friend-avatar.av-offline { background: linear-gradient(135deg, #d8dfe8, #bcc8d4); color: #6a7f90; }
+
+.status-dot { position: absolute; bottom: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; }
+.status-dot.online  { background: #00b050; }
+.status-dot.busy    { background: #e05c00; }
+.status-dot.away    { background: #c0a000; }
+.status-dot.offline { background: var(--msn-offline); }
+
+.friend-info { flex: 1; min-width: 0; }
+.friend-name { font-size: 13px; font-weight: 700; color: var(--msn-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.friend-status-text { font-size: 11px; color: var(--msn-subtext); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+.friend-presence { font-size: 10px; font-weight: 700; margin-top: 1px; }
+.friend-presence.online { color: var(--msn-green); }
+.friend-presence.busy { color: #e05c00; }
+.friend-presence.away { color: #c0a000; }
+.friend-presence.offline { color: var(--msn-offline); }
+
+.badge { background: var(--msn-blue2); color: #fff; border-radius: 10px; font-size: 10px; font-weight: 700; padding: 2px 7px; margin-left: 6px; flex-shrink: 0; }
+
+.friend-del-btn { background: none; border: none; color: #c0392b; font-size: 18px; padding: 6px 8px; cursor: pointer; flex-shrink: 0; opacity: 0.6; }
+.friend-del-btn:active { opacity: 1; }
+
+.empty-msg { text-align: center; color: var(--msn-subtext); padding: 40px 20px; font-size: 12px; line-height: 1.6; }
+.empty-msg .emoji { font-size: 32px; display: block; margin-bottom: 10px; }
+
+/* ── Bottom nav ── */
+.bottom-nav { display: flex; background: linear-gradient(180deg, var(--msn-bar-top) 0%, var(--msn-bar-bot) 100%); border-top: 1.5px solid var(--msn-blue3); box-shadow: 0 -2px 8px rgba(0,30,100,0.25); flex-shrink: 0; padding-bottom: var(--safe-bottom); }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px; background: none; border: none; color: rgba(255,255,255,0.85); font-family: 'Tahoma', Arial, sans-serif; font-size: 9px; font-weight: 700; cursor: pointer; gap: 3px; text-transform: uppercase; letter-spacing: 0.4px; border-right: 1px solid rgba(255,255,255,0.12); position: relative; }
+.nav-btn:last-child { border-right: none; }
+.nav-btn:active { background: rgba(0,0,0,0.15); }
+.nav-btn .nav-icon { font-size: 20px; }
+.nav-badge { position: absolute; top: 4px; right: 14px; background: #ff3b30; color: #fff; border-radius: 8px; font-size: 9px; font-weight: 700; padding: 1px 5px; border: 1.5px solid rgba(255,255,255,0.7); display: none; }
+
+/* ── Status picker overlay ── */
+.overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,20,60,0.55); z-index: 200; align-items: flex-end; }
+.overlay.show { display: flex; }
+.overlay-box { background: #fff; border-radius: 14px 14px 0 0; width: 100%; padding: 0 0 calc(16px + var(--safe-bottom)); animation: slideUp 0.2s ease; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.overlay-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid var(--msn-gray2); }
+.overlay-title { font-size: 14px; font-weight: 700; color: var(--msn-blue1); }
+.overlay-close { background: none; border: none; font-size: 20px; color: #888; cursor: pointer; padding: 4px; }
+.status-option { display: flex; align-items: center; padding: 12px 16px; gap: 12px; cursor: pointer; border-bottom: 1px solid #f0f4fa; }
+.status-option:active { background: var(--msn-blue5); }
+.status-option-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.dot-online { background: #00b050; }
+.dot-busy { background: #e05c00; }
+.dot-away { background: #c0a000; }
+.dot-invisible { background: #888; }
+.status-option-label { font-size: 13px; font-weight: 700; color: var(--msn-text); }
+.status-option-sub { font-size: 11px; color: var(--msn-subtext); margin-top: 1px; }
+.status-custom-area { padding: 12px 16px 4px; }
+.status-custom-label { font-size: 11px; font-weight: 700; color: var(--msn-subtext); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.status-custom-row { display: flex; gap: 8px; }
+.status-custom-row input { flex: 1; padding: 9px 11px; border: 1.5px solid var(--msn-border); border-radius: 6px; font-size: 13px; font-family: 'Tahoma', Arial, sans-serif; color: var(--msn-text); -webkit-appearance: none; }
+.status-custom-row input:focus { outline: none; border-color: var(--msn-blue2); box-shadow: 0 0 0 3px rgba(26,127,212,0.15); }
+.status-save-btn { background: linear-gradient(180deg, var(--msn-bar-top) 0%, var(--msn-bar-bot) 100%); color: #fff; border: 1px solid var(--msn-blue1); border-radius: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; font-family: 'Tahoma', Arial, sans-serif; cursor: pointer; white-space: nowrap; }
+
+/* ── Confirm overlay ── */
+.confirm-box { background: #fff; border-radius: 14px; width: calc(100% - 40px); max-width: 300px; margin: auto; padding: 20px 18px; box-shadow: 0 8px 30px rgba(0,20,60,0.3); animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.confirm-box h3 { font-size: 15px; font-weight: 700; color: var(--msn-blue1); margin-bottom: 8px; }
+.confirm-box p { font-size: 12px; color: var(--msn-subtext); margin-bottom: 16px; line-height: 1.5; }
+.confirm-btns { display: flex; gap: 8px; }
+.confirm-btns button { flex: 1; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 700; font-family: 'Tahoma', Arial, sans-serif; cursor: pointer; border: none; }
+.confirm-btns .btn-danger { background: linear-gradient(180deg, #ff6b6b, #d63031); color: #fff; border: 1px solid #a00; }
+.confirm-btns .btn-cancel { background: linear-gradient(180deg, #fff, #e8eef8); color: var(--msn-blue1); border: 1px solid var(--msn-border); }
+.confirm-btns button:active { filter: brightness(0.88); }
+
+/* ── CHAT ── */
+#chatScreen { background: var(--msn-chat-bg); }
+.chat-titlebar { background: linear-gradient(180deg, var(--msn-title-top) 0%, var(--msn-title-bot) 100%); display: flex; align-items: center; padding: 8px 10px; gap: 8px; border-bottom: 2px solid var(--msn-blue3); box-shadow: 0 2px 6px rgba(0,30,100,0.3); flex-shrink: 0; min-height: 52px; }
+.chat-target-avatar { width: 36px; height: 36px; border-radius: 6px; background: linear-gradient(135deg, #b8e0ff, #7ec8ff); color: var(--msn-blue1); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; border: 1.5px solid rgba(255,255,255,0.4); flex-shrink: 0; }
+.chat-target-info { flex: 1; min-width: 0; }
+.chat-target-info .ct-name { font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-target-info .ct-typing { font-size: 10px; color: var(--msn-blue4); font-style: italic; min-height: 13px; }
+
+.chat-messages { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 10px 6px; display: flex; flex-direction: column; gap: 6px; }
+.bubble-wrap { display: flex; align-items: flex-end; gap: 6px; }
+.bubble-wrap.mine { flex-direction: row-reverse; }
+.bubble-avatar { width: 26px; height: 26px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-bottom: 2px; }
+.bubble-avatar.theirs-av { background: linear-gradient(135deg, #b8e0ff, #7ec8ff); color: var(--msn-blue1); border: 1px solid var(--msn-border); }
+.bubble-avatar.mine-av { background: linear-gradient(135deg, #ffe0b2, #ffb74d); color: #7a3a00; border: 1px solid #ffb74d; }
+.bubble { max-width: 72%; padding: 7px 10px; font-size: 13px; line-height: 1.45; word-break: break-word; }
+.bubble.theirs { background: var(--msn-theirs-bg); color: var(--msn-text); border: 1px solid var(--msn-theirs-border); border-radius: 2px 12px 12px 12px; box-shadow: var(--msn-shadow2); }
+.bubble.mine { background: var(--msn-mine-bg); color: #003060; border: 1px solid var(--msn-mine-border); border-radius: 12px 2px 12px 12px; box-shadow: var(--msn-shadow2); }
+.bubble .ts { font-size: 9px; margin-top: 4px; opacity: 0.65; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
+.bubble .status-icon { font-size: 9px; }
+
+.chat-input-bar { background: linear-gradient(180deg, #e8f0fb 0%, #d4e4f8 100%); border-top: 1.5px solid var(--msn-border); padding: 8px 10px; padding-bottom: calc(8px + var(--safe-bottom)); flex-shrink: 0; }
+.chat-input-toolbar { display: flex; gap: 5px; margin-bottom: 6px; align-items: center; }
+.toolbar-btn { background: linear-gradient(180deg, #fff 0%, #dce8f8 100%); border: 1px solid var(--msn-border); border-radius: 4px; color: var(--msn-blue1); font-size: 14px; width: 28px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.toolbar-btn:active { filter: brightness(0.88); }
+.toolbar-spacer { flex: 1; }
+.chat-del-btn { background: linear-gradient(180deg, #fff 0%, #ffe0e0 100%); border: 1px solid #ffb0b0; border-radius: 5px; color: #c0392b; font-size: 11px; font-weight: 700; font-family: 'Tahoma', Arial, sans-serif; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
+.chat-del-btn:active { filter: brightness(0.88); }
+.chat-input-row { display: flex; align-items: flex-end; gap: 8px; }
+.chat-input-row textarea { flex: 1; border: 1.5px solid var(--msn-border); border-radius: 6px; padding: 8px 10px; font-size: 14px; font-family: 'Tahoma', Arial, sans-serif; resize: none; max-height: 80px; min-height: 38px; -webkit-appearance: none; line-height: 1.4; background: #fff; color: var(--msn-text); box-shadow: inset 0 1px 3px rgba(0,80,160,0.1); }
+.chat-input-row textarea:focus { outline: none; border-color: var(--msn-blue2); box-shadow: inset 0 1px 3px rgba(0,80,160,0.1), 0 0 0 3px rgba(26,127,212,0.15); }
+.send-btn { width: 44px; height: 44px; border-radius: 8px; background: linear-gradient(180deg, var(--msn-bar-top) 0%, var(--msn-bar-bot) 100%); color: #fff; border: 1px solid var(--msn-blue1); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.send-btn:active { transform: scale(0.94); filter: brightness(0.88); }
+
+/* ── SEARCH ── */
+#searchScreen { background: var(--msn-gray); }
+.search-bar-wrapper { background: linear-gradient(180deg, #e8f0fb 0%, #d4e4f8 100%); border-bottom: 1px solid var(--msn-border); padding: 10px 12px; flex-shrink: 0; }
+.search-bar-label { font-size: 10px; font-weight: 700; color: var(--msn-blue1); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+.search-input-row { display: flex; gap: 8px; align-items: center; }
+.search-input-row input { flex: 1; padding: 9px 11px; border: 1.5px solid var(--msn-border); border-radius: 6px; font-size: 14px; font-family: 'Tahoma', Arial, sans-serif; -webkit-appearance: none; background: #fff; color: var(--msn-text); }
+.search-input-row input:focus { outline: none; border-color: var(--msn-blue2); box-shadow: 0 0 0 3px rgba(26,127,212,0.15); }
+.search-go-btn { background: linear-gradient(180deg, var(--msn-bar-top) 0%, var(--msn-bar-bot) 100%); border: 1px solid var(--msn-blue1); border-radius: 6px; color: #fff; font-size: 18px; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.search-go-btn:active { filter: brightness(0.88); }
+.search-results { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--msn-white); }
+.result-item { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #edf2f8; }
+.result-item .result-avatar { width: 36px; height: 36px; border-radius: 6px; background: linear-gradient(135deg, #d4e8ff, #a8d0ff); color: var(--msn-blue1); border: 1px solid var(--msn-border); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; margin-right: 10px; flex-shrink: 0; }
+.result-item .result-name { flex: 1; font-size: 13px; font-weight: 700; color: var(--msn-text); }
+.btn-add { background: linear-gradient(180deg, var(--msn-bar-top) 0%, var(--msn-bar-bot) 100%); color: #fff; border: 1px solid var(--msn-blue1); border-radius: 5px; padding: 6px 14px; font-size: 12px; font-weight: 700; font-family: 'Tahoma', Arial, sans-serif; cursor: pointer; }
+.btn-add:active { filter: brightness(0.88); }
+
+/* ── REQUESTS ── */
+#requestsScreen { background: var(--msn-gray); }
+.req-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--msn-white); }
+.req-item { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #edf2f8; }
+.req-item .req-avatar { width: 36px; height: 36px; border-radius: 6px; background: linear-gradient(135deg, #ffe0e0, #ffb0b0); color: #900; border: 1px solid #ffb0b0; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; margin-right: 10px; flex-shrink: 0; }
+.req-name { flex: 1; font-size: 13px; font-weight: 700; color: var(--msn-text); }
+.req-btns { display: flex; gap: 6px; }
+.req-btns button { border: none; border-radius: 5px; width: 34px; height: 34px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-accept { background: linear-gradient(180deg, #4cd97a, #00a550); color: #fff; border: 1px solid #007a38 !important; }
+.btn-reject { background: linear-gradient(180deg, #ff6b6b, #d63031); color: #fff; border: 1px solid #a00 !important; }
+</style>
+</head>
+<body>
+
+<!-- Solo para errores de conexion, NO para notificaciones de mensajes -->
+<div id="connBar">⚠ Sin conexion — reconectando...</div>
+
+<!-- ══ LOGIN ══ -->
+<div id="loginScreen" class="screen active">
+  <div class="login-wrapper">
+    <div class="login-logo-area">
+      <img src="retrochat-logo.png" class="msn-butterfly-logo" alt="RetroChat Logo">
+      <h1>RetroChat</h1>
+      <div class="tagline">Mensajeria clasica ✦ Siempre conectado</div>
+    </div>
+    <div class="login-box">
+      <div class="login-box-header">Iniciar sesion</div>
+      <input id="cfgServer" type="hidden" value="35.231.89.89:5191">
+      <div class="field">
+        <label>Usuario</label>
+        <input id="inUser" type="text" autocorrect="off" autocapitalize="none" placeholder="tu_nombre">
+      </div>
+      <div class="field">
+        <label>Contrasena</label>
+        <input id="inPass" type="password" placeholder="••••••••">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+        <button class="btn btn-secondary" onclick="doRegister()">Registrarse</button>
+      </div>
+      <p id="loginStatus" class="status-msg"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AMIGOS ══ -->
+<div id="friendScreen" class="screen">
+  <div class="msn-titlebar">
+    <div class="msn-titlebar-inner">
+      <img src="retrochat-logo.png" class="msn-logo" alt="RetroChat Logo">
+      <div class="msn-title-text">
+        <div class="app-name">RetroChat</div>
+      </div>
+      <!-- Boton actualizar lista -->
+      <button class="msn-btn" onclick="refreshFriends()" title="Actualizar">🔄</button>
+    </div>
+  </div>
+
+  <!-- Mi perfil — tap para cambiar estado -->
+  <div class="friends-header-bar" onclick="openStatusPicker()">
+    <div class="my-avatar" id="myAvatar">?</div>
+    <div class="my-info">
+      <div class="my-name" id="myName">—</div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:2px;">
+        <span class="my-status-dot online" id="myStatusDot">●</span>
+        <span id="myPresenceLabel" style="font-size:10px;font-weight:700;color:var(--msn-green);">En linea</span>
+      </div>
+      <div class="my-status-text" id="myStatusText">Toca para cambiar estado...</div>
+    </div>
+    <span style="font-size:18px;color:var(--msn-subtext);padding:4px;">✎</span>
+  </div>
+
+  <div class="friends-section-label">Contactos</div>
+
+  <div class="friends-list" id="friendsList">
+    <p class="empty-msg"><span class="emoji">💬</span>No tenes contactos aun.<br>Usa <b>Buscar</b> para agregar amigos.</p>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn" onclick="showSearch()">
+      <span class="nav-icon">🔍</span>Buscar
+    </button>
+    <button class="nav-btn" id="navReqBtn" onclick="showRequests()">
+      <span class="nav-icon">👥</span>Solicitudes
+      <span class="nav-badge" id="reqBadge">0</span>
+    </button>
+    <button class="nav-btn" onclick="doLogout()">
+      <span class="nav-icon">🚪</span>Salir
+    </button>
+  </div>
+</div>
+
+<!-- ══ CHAT ══ -->
+<div id="chatScreen" class="screen">
+  <div class="chat-titlebar">
+    <button class="msn-btn" onclick="showFriends()" style="font-size:22px;">‹</button>
+    <div class="chat-target-avatar" id="chatAvatar">?</div>
+    <div class="chat-target-info">
+      <div class="ct-name"><span id="chatTitle">—</span> <span id="chatStatus" style="font-size:11px; margin-left:6px;"></span></div>
+      <div class="ct-typing" id="typingIndicator"></div>
+    </div>
+    <button class="chat-del-btn" onclick="confirmClearChat()">🗑 Limpiar chat</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-bar">
+    <div class="chat-input-toolbar">
+      <button class="toolbar-btn" onclick="insertEmoji('😊')">😊</button>
+      <button class="toolbar-btn" onclick="insertEmoji('😂')">😂</button>
+      <button class="toolbar-btn" onclick="insertEmoji('❤️')">❤️</button>
+      <button class="toolbar-btn" onclick="insertEmoji('👍')">👍</button>
+      <button class="toolbar-btn" onclick="insertEmoji('😢')">😢</button>
+      <div class="toolbar-spacer"></div>
+    </div>
+    <div class="chat-input-row">
+      <textarea id="msgInput" rows="1" placeholder="Escribi algo..."></textarea>
+      <button class="send-btn" onclick="sendMsg()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BUSCAR ══ -->
+<div id="searchScreen" class="screen">
+  <div class="msn-titlebar">
+    <div class="msn-titlebar-inner">
+      <button class="msn-btn" onclick="showFriends()" style="font-size:22px;">‹</button>
+      <div class="msn-title-text">
+        <div class="app-name">Buscar usuarios</div>
+        <div class="app-sub">Encuentra amigos</div>
+      </div>
+    </div>
+  </div>
+  <div class="search-bar-wrapper">
+    <div class="search-bar-label">Buscar por nombre de usuario</div>
+    <div class="search-input-row">
+      <input id="searchInput" type="text" placeholder="Nombre de usuario..." autocorrect="off" autocapitalize="none" oninput="doSearch()">
+      <button class="search-go-btn" onclick="doSearch()">🔍</button>
+    </div>
+  </div>
+  <div class="search-results" id="searchResults">
+    <p class="empty-msg" style="padding-top:30px;"><span style="font-size:28px;display:block;margin-bottom:8px;">🔍</span>Escribi al menos 2 caracteres.</p>
+  </div>
+</div>
+
+<!-- ══ SOLICITUDES ══ -->
+<div id="requestsScreen" class="screen">
+  <div class="msn-titlebar">
+    <div class="msn-titlebar-inner">
+      <button class="msn-btn" onclick="showFriends()" style="font-size:22px;">‹</button>
+      <div class="msn-title-text">
+        <div class="app-name">Solicitudes</div>
+        <div class="app-sub">Pedidos de amistad</div>
+      </div>
+    </div>
+  </div>
+  <div class="friends-section-label">Solicitudes pendientes</div>
+  <div class="req-list" id="reqList">
+    <p class="empty-msg"><span class="emoji">📭</span>No hay solicitudes pendientes.</p>
+  </div>
+</div>
+
+<!-- ══ OVERLAY: CAMBIAR ESTADO ══ -->
+<div id="statusOverlay" class="overlay" onclick="closeStatusPicker(event)">
+  <div class="overlay-box">
+    <div class="overlay-header">
+      <span class="overlay-title">✎ Mi estado</span>
+      <button class="overlay-close" onclick="closeStatusPicker()">✕</button>
+    </div>
+    <div class="status-custom-area">
+      <div class="status-custom-label">Mensaje personalizado (max 50 car.)</div>
+      <div class="status-custom-row">
+        <input id="customStatusInput" type="text" maxlength="50" placeholder="Ej: Jugando, Estudiando...">
+        <button class="status-save-btn" onclick="saveCustomStatus()">Guardar</button>
+      </div>
+    </div>
+    <div style="border-bottom:1px solid var(--msn-gray2);margin:10px 0 4px;"></div>
+    <div class="status-option" onclick="setPresence('online')">
+      <span class="status-option-dot dot-online"></span>
+      <div><div class="status-option-label">En linea</div><div class="status-option-sub">Disponible para chatear</div></div>
+    </div>
+    <div class="status-option" onclick="setPresence('busy')">
+      <span class="status-option-dot dot-busy"></span>
+      <div><div class="status-option-label">Ocupado</div><div class="status-option-sub">Ocupado, minimizan notificaciones</div></div>
+    </div>
+    <div class="status-option" onclick="setPresence('away')">
+      <span class="status-option-dot dot-away"></span>
+      <div><div class="status-option-label">Ausente</div><div class="status-option-sub">Alejado del teclado</div></div>
+    </div>
+    <div class="status-option" onclick="setPresence('invisible')">
+      <span class="status-option-dot dot-invisible"></span>
+      <div><div class="status-option-label">No disponible</div><div class="status-option-sub">Aparecer como desconectado</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ OVERLAY: CONFIRMAR ACCION ══ -->
+<div id="confirmOverlay" class="overlay" onclick="closeConfirm(event)">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">Confirmar</h3>
+    <p id="confirmMsg">¿Estas seguro?</p>
+    <div class="confirm-btns">
+      <button class="btn-cancel" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn-danger" id="confirmOkBtn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var ws = null;
+var myUser = "";
+var chatTarget = "";
+var friends = [];
+var friendsOnline = [];
+var friendsStatuses = {};   // username -> status_text
+var friendsPresence = {};   // username -> 'online'|'busy'|'away'|'offline'
+var unread = {};
+var requests = [];
+var typingTimer = null;
+var reconnectTimer = null;
+var reconnectDelay = 2000;
+var pendingAction = null;
+var pendingUser = "";
+var pendingPass = "";
+var myPresence = "online";
+var myStatusText = "";
+
+// ── Config ──────────────────────────────────────────────────────────────────
+function saveConfig() {
+    try { var s = document.getElementById("cfgServer").value.trim(); if (s) document.cookie = "rcServer=" + encodeURIComponent(s) + ";max-age=31536000;path=/"; } catch(e) {}
+}
+function loadConfig() {
+    try { var m = document.cookie.match(/rcServer=([^;]+)/); if (m) document.getElementById("cfgServer").value = decodeURIComponent(m[1]); } catch(e) {}
+}
+
+// ── WebSocket ────────────────────────────────────────────────────────────────
+function getWsUrl() {
+    var srv = document.getElementById("cfgServer").value.trim();
+    if (!srv) return null;
+    if (srv.indexOf(":") < 0) srv = srv + ":5191";
+    return "ws://" + srv;
+}
+function connect(onOpen) {
+    if (ws) { try { ws.close(); } catch(e) {} ws = null; }
+    var url = getWsUrl();
+    if (!url) { setLoginStatus("Ingresa la IP del servidor", true); return; }
+    setLoginStatus("Conectando...");
+    ws = new WebSocket(url);
+    ws.onopen = function() {
+        reconnectDelay = 2000;
+        document.getElementById("connBar").classList.remove("show");
+        if (onOpen) onOpen();
+    };
+    ws.onmessage = function(e) {
+        var lines = e.data.split("\n");
+        for (var i = 0; i < lines.length; i++) {
+            var l = lines[i].trim();
+            if (l) handlePacket(JSON.parse(l));
+        }
+    };
+    ws.onerror = function() {};
+    ws.onclose = function() {
+        ws = null;
+        if (myUser) { document.getElementById("connBar").classList.add("show"); scheduleReconnect(); }
+    };
+}
+function scheduleReconnect() {
+    if (reconnectTimer) return;
+    reconnectTimer = setTimeout(function() {
+        reconnectTimer = null;
+        if (!myUser) return;
+        connect(function() { send({type:"login", username:myUser, password:pendingPass}); });
+    }, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+}
+function send(obj) {
+    if (ws && ws.readyState === 1) { ws.send(JSON.stringify(obj) + "\n"); return true; }
+    return false;
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+function doLogin() {
+    var u = document.getElementById("inUser").value.trim();
+    var p = document.getElementById("inPass").value;
+    if (u.length < 3 || p.length < 3) { setLoginStatus("Minimo 3 caracteres", true); return; }
+    saveConfig(); pendingAction = "login"; pendingUser = u; pendingPass = p;
+    connect(function() { send({type:"login", username:u, password:p}); });
+}
+function doRegister() {
+    var u = document.getElementById("inUser").value.trim();
+    var p = document.getElementById("inPass").value;
+    if (u.length < 3 || p.length < 3) { setLoginStatus("Minimo 3 caracteres", true); return; }
+    saveConfig(); pendingAction = "register"; pendingUser = u; pendingPass = p;
+    connect(function() { send({type:"register", username:u, password:p}); });
+}
+function doLogout() {
+    myUser = ""; pendingPass = "";
+    if (ws) { try { ws.close(); } catch(e) {} ws = null; }
+    showScreen("loginScreen");
+}
+function setLoginStatus(msg, isErr) {
+    var el = document.getElementById("loginStatus");
+    el.textContent = msg;
+    el.className = "status-msg" + (isErr ? " error" : "");
+}
+
+// ── Packets ──────────────────────────────────────────────────────────────────
+function handlePacket(pkt) {
+    var t = pkt.type;
+    if (t === "ok" && pkt.username && (pendingAction === "login" || pendingAction === "register")) {
+        myUser = pkt.username;
+        pendingAction = null;
+        document.getElementById("myName").textContent = myUser;
+        document.getElementById("myAvatar").textContent = myUser[0].toUpperCase();
+        showScreen("friendScreen");
+        send({type:"friend_list"});
+
+    } else if (t === "error") {
+        if (!myUser) setLoginStatus(pkt.msg || "Error", true);
+        // errores en sesion: no mostramos nada visible, solo log
+        // (quitamos el connBar naranja para notificaciones)
+
+    } else if (t === "friend_list") {
+        friends = pkt.friends || [];
+        var statuses = pkt.statuses || [];
+        friendsStatuses = {};
+        for (var i = 0; i < friends.length; i++) {
+            friendsStatuses[friends[i]] = statuses[i] || "";
+        }
+        friendsOnline = pkt.online || [];
+        renderFriends();
+
+    } else if (t === "msg") {
+        var from = pkt.from_user;
+        if (chatTarget === from) {
+            appendBubble(from, pkt.body, pkt.ts, false);
+            scrollChat();
+            send({type:"read", from_user: from});
+        } else {
+            unread[from] = (unread[from] || 0) + 1;
+            renderFriends();
+            // Solo actualizamos el badge, sin banner naranja
+        }
+
+    } else if (t === "history") {
+        if (chatTarget === pkt.with_user) renderHistory(pkt.msgs);
+
+    } else if (t === "typing") {
+        if (chatTarget === pkt.from_user) {
+            document.getElementById("typingIndicator").textContent =
+                pkt.typing ? pkt.from_user + " esta escribiendo..." : "";
+        }
+
+    } else if (t === "status") {
+        var u = pkt.username;
+        var idx = friends.indexOf(u);
+        if (idx >= 0) {
+            if (pkt.online) {
+                if (friendsOnline.indexOf(u) < 0) friendsOnline.push(u);
+                // presence dentro de status_text podria ser "busy:" o "away:" prefix
+                var rawText = pkt.status_text || "";
+                var presence = "online";
+                var displayText = rawText;
+                if (rawText.indexOf("busy:") === 0) { presence = "busy"; displayText = rawText.slice(5); }
+                else if (rawText.indexOf("away:") === 0) { presence = "away"; displayText = rawText.slice(5); }
+                friendsPresence[u] = presence;
+                friendsStatuses[u] = displayText;
+            } else {
+                friendsOnline = friendsOnline.filter(function(f){ return f !== u; });
+                friendsPresence[u] = "offline";
+            }
+            renderFriends();
+            if (chatTarget === u) {
+                updateChatStatus(u);
+            }
+        }
+
+    } else if (t === "friend_request") {
+        if (requests.indexOf(pkt.from_user) < 0) requests.push(pkt.from_user);
+        updateReqBadge();
+
+    } else if (t === "friend_accepted") {
+        send({type:"friend_list"});
+
+    } else if (t === "search_results") {
+        renderSearchResults(pkt.results || []);
+
+    } else if (t === "delivered") {
+        var bubbles = document.querySelectorAll(".bubble.mine .status-icon");
+        if (bubbles.length) bubbles[bubbles.length-1].textContent = " ✓✓";
+
+    } else if (t === "queued") {
+        var bubbles2 = document.querySelectorAll(".bubble.mine .status-icon");
+        if (bubbles2.length) bubbles2[bubbles2.length-1].textContent = " ✓";
+    }
+}
+
+// ── Presencia / estado ───────────────────────────────────────────────────────
+var presenceLabels = { online: "En linea", busy: "Ocupado", away: "Ausente", invisible: "No disponible" };
+var presenceColors = { online: "var(--msn-green)", busy: "#e05c00", away: "#c0a000", invisible: "#888" };
+var presenceDotClass = { online: "online", busy: "busy", away: "away", invisible: "invisible" };
+
+function openStatusPicker() {
+    document.getElementById("customStatusInput").value = myStatusText;
+    document.getElementById("statusOverlay").classList.add("show");
+}
+function closeStatusPicker(e) {
+    if (!e || e.target === document.getElementById("statusOverlay")) {
+        document.getElementById("statusOverlay").classList.remove("show");
+    }
+}
+
+function setPresence(p) {
+    myPresence = p;
+    // Actualizamos UI local
+    var dot = document.getElementById("myStatusDot");
+    dot.className = "my-status-dot " + presenceDotClass[p];
+    dot.textContent = "●";
+    var lbl = document.getElementById("myPresenceLabel");
+    lbl.textContent = presenceLabels[p];
+    lbl.style.color = presenceColors[p];
+    // Enviamos al servidor: prefijamos el texto si busy/away
+    sendStatusToServer();
+    closeStatusPicker();
+}
+
+function saveCustomStatus() {
+    var txt = document.getElementById("customStatusInput").value.trim();
+    myStatusText = txt;
+    document.getElementById("myStatusText").textContent = txt || "Toca para cambiar estado...";
+    sendStatusToServer();
+    closeStatusPicker();
+}
+
+function sendStatusToServer() {
+    var prefix = (myPresence === "busy") ? "busy:" : (myPresence === "away") ? "away:" : (myPresence === "invisible") ? "invisible:" : "";
+    send({type:"set_status", status_text: prefix + myStatusText});
+}
+
+// ── Lista de amigos ──────────────────────────────────────────────────────────
+function updateReqBadge() {
+    var badge = document.getElementById("reqBadge");
+    if (requests.length > 0) { badge.textContent = requests.length; badge.style.display = "block"; }
+    else { badge.style.display = "none"; }
+}
+
+function refreshFriends() {
+    send({type:"friend_list"});
+}
+
+function renderFriends() {
+    var el = document.getElementById("friendsList");
+    if (!friends.length) {
+        el.innerHTML = '<p class="empty-msg"><span class="emoji">💬</span>No tenes contactos aun.<br>Usa <b>Buscar</b> para agregar amigos.</p>';
+        return;
+    }
+    var html = "";
+    for (var i = 0; i < friends.length; i++) {
+        var f = friends[i];
+        var online = friendsOnline.indexOf(f) >= 0;
+        var presence = online ? (friendsPresence[f] || "online") : "offline";
+        var statusTxt = friendsStatuses[f] || "";
+        var cnt = unread[f] || 0;
+
+        var avClass = "av-" + presence;
+        var dotClass = presence;
+        var presenceLbl = online ? (presenceLabels[presence] || "En linea") : "Desconectado";
+        var presenceCls = presence;
+
+        html += '<div class="friend-item">' +
+            '<div class="friend-item-tap" onclick="openChat(\'' + esc(f) + '\')">' +
+            '<div class="friend-avatar ' + avClass + '">' +
+            esc(f[0].toUpperCase()) +
+            '<span class="status-dot ' + dotClass + '"></span>' +
+            '</div>' +
+            '<div class="friend-info">' +
+            '<div class="friend-name">' + esc(f) + (cnt ? '<span class="badge">' + cnt + '</span>' : '') + '</div>' +
+            '<div class="friend-presence ' + presenceCls + '">' + presenceLbl + '</div>' +
+            (statusTxt ? '<div class="friend-status-text">' + esc(statusTxt) + '</div>' : '') +
+            '</div>' +
+            '</div>' +
+            '<button class="friend-del-btn" onclick="confirmRemoveFriend(\'' + esc(f) + '\')" title="Eliminar contacto">✕</button>' +
+            '</div>';
+    }
+    el.innerHTML = html;
+}
+
+function confirmRemoveFriend(user) {
+    showConfirm(
+        "Eliminar contacto",
+        "¿Eliminar a " + user + " de tus contactos? Esta accion no se puede deshacer.",
+        function() { doRemoveFriend(user); }
+    );
+}
+function doRemoveFriend(user) {
+    send({type:"friend_remove", username: user});
+    friends = friends.filter(function(f){ return f !== user; });
+    delete unread[user];
+    delete friendsStatuses[user];
+    delete friendsPresence[user];
+    friendsOnline = friendsOnline.filter(function(f){ return f !== user; });
+    renderFriends();
+}
+
+// ── Chat ─────────────────────────────────────────────────────────────────────
+function updateChatStatus(user) {
+    var online = friendsOnline.indexOf(user) >= 0;
+    var presence = online ? (friendsPresence[user] || "online") : "offline";
+    var presenceLbl = online ? (presenceLabels[presence] || "En linea") : "Desconectado";
+    var presenceColor = online ? (presenceColors[presence] || "var(--msn-green)") : "var(--msn-offline)";
+    var statusTxt = friendsStatuses[user] ? " - " + friendsStatuses[user] : "";
+    var statusEl = document.getElementById("chatStatus");
+    if(statusEl) {
+        statusEl.innerHTML = '<span style="color:' + presenceColor + ';">●</span> <span style="font-weight:normal; opacity:0.85;">' + presenceLbl + esc(statusTxt) + '</span>';
+    }
+}
+
+function openChat(user) {
+    chatTarget = user;
+    unread[user] = 0;
+    renderFriends();
+    document.getElementById("chatTitle").textContent = user;
+    updateChatStatus(user);
+    document.getElementById("chatAvatar").textContent = user[0].toUpperCase();
+    document.getElementById("chatMessages").innerHTML = "";
+    document.getElementById("typingIndicator").textContent = "";
+    document.getElementById("msgInput").value = "";
+    showScreen("chatScreen");
+    send({type:"history", with: user});
+}
+
+function renderHistory(msgs) {
+    var el = document.getElementById("chatMessages");
+    el.innerHTML = "";
+    for (var i = 0; i < msgs.length; i++) {
+        appendBubble(msgs[i].from, msgs[i].body, msgs[i].ts, false);
+    }
+    scrollChat();
+    send({type:"read", from_user: chatTarget});
+}
+
+function appendBubble(from, body, ts, delivered) {
+    var mine = (from === myUser);
+    var time = ts ? ts.substring(11,16) : "";
+    var el = document.createElement("div");
+    el.className = "bubble-wrap" + (mine ? " mine" : "");
+    var avClass = mine ? "mine-av" : "theirs-av";
+    var avLetter = from ? from[0].toUpperCase() : "?";
+    el.innerHTML =
+        '<div class="bubble-avatar ' + avClass + '">' + avLetter + '</div>' +
+        '<div class="bubble ' + (mine ? "mine" : "theirs") + '">' +
+        esc(body) +
+        '<div class="ts">' + time + (mine ? '<span class="status-icon"> ✓</span>' : '') + '</div>' +
+        '</div>';
+    document.getElementById("chatMessages").appendChild(el);
+}
+
+function scrollChat() {
+    var el = document.getElementById("chatMessages");
+    el.scrollTop = el.scrollHeight;
+}
+
+function sendMsg() {
+    var body = document.getElementById("msgInput").value.trim();
+    if (!body || !chatTarget) return;
+    if (!send({type:"msg", to: chatTarget, body: body})) return;
+    appendBubble(myUser, body, new Date().toISOString(), false);
+    scrollChat();
+    document.getElementById("msgInput").value = "";
+    var ta = document.getElementById("msgInput");
+    ta.style.height = "38px";
+    send({type:"typing", to: chatTarget, typing: false});
+}
+
+function insertEmoji(emoji) {
+    var ta = document.getElementById("msgInput");
+    var pos = ta.selectionStart || ta.value.length;
+    ta.value = ta.value.substring(0, pos) + emoji + ta.value.substring(pos);
+    ta.focus(); onTypingInput();
+}
+
+function onTypingInput() {
+    if (chatTarget) {
+        send({type:"typing", to: chatTarget, typing: true});
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(function(){ send({type:"typing", to: chatTarget, typing: false}); }, 2000);
+    }
+    var ta = document.getElementById("msgInput");
+    ta.style.height = "38px";
+    ta.style.height = Math.min(ta.scrollHeight, 80) + "px";
+}
+
+function confirmClearChat() {
+    showConfirm(
+        "Limpiar chat",
+        "¿Borrar todos los mensajes visibles de este chat? Solo se borra localmente.",
+        function() {
+            document.getElementById("chatMessages").innerHTML = "";
+        }
+    );
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    var ta = document.getElementById("msgInput");
+    ta.addEventListener("input", onTypingInput);
+    ta.addEventListener("keydown", function(e) {
+        if (e.keyCode === 13 && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+    });
+    loadConfig();
+});
+
+// ── Buscar ───────────────────────────────────────────────────────────────────
+var searchTimer = null;
+function doSearch() {
+    var q = document.getElementById("searchInput").value.trim();
+    clearTimeout(searchTimer);
+    if (q.length < 2) {
+        document.getElementById("searchResults").innerHTML = '<p class="empty-msg" style="padding-top:30px;"><span style="font-size:28px;display:block;margin-bottom:8px;">🔍</span>Escribi al menos 2 caracteres.</p>';
+        return;
+    }
+    document.getElementById("searchResults").innerHTML = '<p class="empty-msg" style="padding-top:30px;"><span style="font-size:28px;display:block;margin-bottom:8px;">⏳</span>Buscando...</p>';
+    searchTimer = setTimeout(function(){ send({type:"friend_search", query: q}); }, 400);
+}
+
+function renderSearchResults(results) {
+    var el = document.getElementById("searchResults");
+    if (!results.length) { el.innerHTML = '<p class="empty-msg" style="padding-top:30px;"><span style="font-size:28px;display:block;margin-bottom:8px;">😕</span>Sin resultados.</p>'; return; }
+    var html = "";
+    for (var i = 0; i < results.length; i++) {
+        var r = results[i];
+        html += '<div class="result-item">' +
+            '<div class="result-avatar">' + esc(r[0].toUpperCase()) + '</div>' +
+            '<div class="result-name">' + esc(r) + '</div>' +
+            '<button class="btn-add" onclick="addFriend(\'' + esc(r) + '\')">+ Agregar</button>' +
+            '</div>';
+    }
+    el.innerHTML = html;
+}
+
+function addFriend(user) {
+    send({type:"friend_add", to: user});
+}
+
+// ── Solicitudes ──────────────────────────────────────────────────────────────
+function renderRequests() {
+    var el = document.getElementById("reqList");
+    updateReqBadge();
+    if (!requests.length) { el.innerHTML = '<p class="empty-msg"><span class="emoji">📭</span>No hay solicitudes pendientes.</p>'; return; }
+    var html = "";
+    for (var i = 0; i < requests.length; i++) {
+        var r = requests[i];
+        html += '<div class="req-item">' +
+            '<div class="req-avatar">' + esc(r[0].toUpperCase()) + '</div>' +
+            '<div class="req-name">' + esc(r) + '</div>' +
+            '<div class="req-btns">' +
+            '<button class="btn-accept" onclick="acceptReq(\'' + esc(r) + '\')">✓</button>' +
+            '<button class="btn-reject" onclick="rejectReq(\'' + esc(r) + '\')">✗</button>' +
+            '</div></div>';
+    }
+    el.innerHTML = html;
+}
+
+function acceptReq(user) {
+    send({type:"friend_accept", from_user: user});
+    requests = requests.filter(function(r){ return r !== user; });
+    renderRequests(); send({type:"friend_list"});
+}
+function rejectReq(user) {
+    send({type:"friend_reject", from_user: user});
+    requests = requests.filter(function(r){ return r !== user; });
+    renderRequests();
+}
+
+// ── Confirm overlay ──────────────────────────────────────────────────────────
+var confirmCallback = null;
+function showConfirm(title, msg, cb) {
+    document.getElementById("confirmTitle").textContent = title;
+    document.getElementById("confirmMsg").textContent = msg;
+    confirmCallback = cb;
+    document.getElementById("confirmOverlay").classList.add("show");
+    document.getElementById("confirmOkBtn").onclick = function() {
+        closeConfirm();
+        if (confirmCallback) confirmCallback();
+    };
+}
+function closeConfirm(e) {
+    if (!e || e.target === document.getElementById("confirmOverlay")) {
+        document.getElementById("confirmOverlay").classList.remove("show");
+    }
+}
+
+// ── Navegacion ───────────────────────────────────────────────────────────────
+function showScreen(id) {
+    var screens = document.querySelectorAll(".screen");
+    for (var i = 0; i < screens.length; i++) screens[i].classList.remove("active");
+    document.getElementById(id).classList.add("active");
+}
+function showFriends()  { showScreen("friendScreen"); send({type:"friend_list"}); }
+function showSearch()   { showScreen("searchScreen"); document.getElementById("searchInput").value = ""; document.getElementById("searchResults").innerHTML = '<p class="empty-msg" style="padding-top:30px;"><span style="font-size:28px;display:block;margin-bottom:8px;">🔍</span>Escribi al menos 2 caracteres.</p>'; setTimeout(function(){ document.getElementById("searchInput").focus(); }, 100); }
+function showRequests() { showScreen("requestsScreen"); renderRequests(); }
+
+function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+</body>
+</html>
