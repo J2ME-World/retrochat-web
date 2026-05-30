@@ -1500,7 +1500,6 @@
     function getWsUrl() {
       var srv = document.getElementById("cfgServer").value.trim();
       if (!srv) return null;
-      if (srv.indexOf(":") < 0) srv = srv + ":5191";
       return "wss://" + srv;
     }
     function connect(onOpen) {
